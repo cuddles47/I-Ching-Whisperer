@@ -17,6 +17,7 @@ class HuggingFaceLLM:
         model_name: str = "meta-llama/Meta-Llama-3-8B-Instruct",
         device: Optional[str] = None,
         max_length: int = 2048,
+        max_new_tokens: int = 1024,  # Thêm tham số max_new_tokens
         temperature: float = 0.7,
         top_p: float = 0.9,
         truncate: bool = True,
@@ -28,13 +29,15 @@ class HuggingFaceLLM:
         Args:
             model_name: The name or path of the Hugging Face model
             device: The device to use (cpu, cuda, mps), if None will auto-detect
-            max_length: Maximum length of generated text
+            max_length: Maximum length of input tokens
+            max_new_tokens: Maximum number of new tokens to generate
             temperature: Temperature for sampling
             top_p: Top p for nucleus sampling
             truncate: Whether to truncate input to max_length
         """
         self.model_name = model_name
         self.max_length = max_length
+        self.max_new_tokens = max_new_tokens  # Lưu giá trị max_new_tokens
         self.temperature = temperature
         self.top_p = top_p
         self.truncate = truncate
@@ -79,7 +82,8 @@ class HuggingFaceLLM:
         except Exception as e:
             print(f"Error loading model: {e}")
             raise
-              # Create pipeline
+        
+        # Create pipeline
         pipeline_kwargs = {
             "model": self.model,
             "tokenizer": self.tokenizer,
@@ -109,7 +113,7 @@ class HuggingFaceLLM:
             The generated text
         """
         # Get parameters, override with kwargs if provided
-        max_length = kwargs.get("max_length", self.max_length)
+        max_new_tokens = kwargs.get("max_new_tokens", self.max_new_tokens)
         temperature = kwargs.get("temperature", self.temperature)
         top_p = kwargs.get("top_p", self.top_p)
         
@@ -117,10 +121,10 @@ class HuggingFaceLLM:
             # Generate text with explicit truncation parameter
             result = self.pipe(
                 prompt,
-                max_length=max_length,
                 do_sample=temperature > 0,
                 temperature=temperature,
                 top_p=top_p,
+                max_new_tokens=max_new_tokens,  # Sử dụng max_new_tokens thay vì max_length
                 num_return_sequences=1,
                 truncation=True,  # Explicitly enable truncation
                 eos_token_id=self.tokenizer.eos_token_id,
@@ -145,7 +149,13 @@ class HuggingFaceLLM:
 
 # Factory function to create a Hugging Face LLM
 def create_hf_llm(
-    model_name: str = "TheBloke/Llama-2-7B-Chat-GGML", 
+    model_name: str = "TheBloke/Llama-2-7B-Chat-GGML",
+    device: Optional[str] = None,
+    max_length: int = 2048,
+    max_new_tokens: int = 1024,  # Thêm tham số max_new_tokens
+    temperature: float = 0.7,
+    top_p: float = 0.9,
+    truncate: bool = True, 
     **kwargs
 ) -> HuggingFaceLLM:
     """
@@ -158,4 +168,13 @@ def create_hf_llm(
     Returns:
         A HuggingFaceLLM instance
     """
-    return HuggingFaceLLM(model_name=model_name, **kwargs)
+    return HuggingFaceLLM(
+        model_name=model_name,
+        device=device,
+        max_length=max_length,
+        max_new_tokens=max_new_tokens,  # Thêm tham số max_new_tokens
+        temperature=temperature,
+        top_p=top_p,
+        truncate=truncate,
+        **kwargs
+    )
