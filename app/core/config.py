@@ -19,11 +19,11 @@ class Settings(BaseModel):
     # OpenAI Configuration
     OPENAI_API_KEY: str = os.getenv("OPENAI_API_KEY", "")
     OPENAI_MODEL_NAME: str = os.getenv("OPENAI_MODEL_NAME", "gpt-4")
-    
-    # Hugging Face Configuration
+      # Hugging Face Configuration
     HF_MODEL_NAME: str = os.getenv("HF_MODEL_NAME", "microsoft/phi-2")
     HF_DEVICE: Optional[str] = os.getenv("HF_DEVICE", None)  # None for auto-detect
     HF_MAX_LENGTH: int = int(os.getenv("HF_MAX_LENGTH", "2048"))
+    HF_MAX_NEW_TOKENS: int = int(os.getenv("HF_MAX_NEW_TOKENS", "1024"))  # Số lượng token mới tối đa
     HF_TEMPERATURE: float = float(os.getenv("HF_TEMPERATURE", "0.7"))
     HF_TOP_P: float = float(os.getenv("HF_TOP_P", "0.9"))
     
