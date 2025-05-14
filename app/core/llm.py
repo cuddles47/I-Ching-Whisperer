@@ -61,6 +61,7 @@ class LLMHandler:
                 model_name=settings.HF_MODEL_NAME,
                 device=settings.HF_DEVICE,
                 max_length=settings.HF_MAX_LENGTH,
+                max_new_tokens=settings.HF_MAX_NEW_TOKENS,
                 temperature=settings.HF_TEMPERATURE,
                 top_p=settings.HF_TOP_P
             )
