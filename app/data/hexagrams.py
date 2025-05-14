@@ -140,4 +140,3 @@ def get_hexagram_by_number(number: int):
             return hexagram
     return None
 
-# In a production environment, you would have all 64 hexagrams defined here
