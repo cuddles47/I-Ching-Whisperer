@@ -1,16 +1,70 @@
 from langchain_community.chat_models import ChatOpenAI
 from langchain.schema import SystemMessage, HumanMessage
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional, Protocol, runtime_checkable
 
 from app.core.config import settings
+from app.core.hf_llm import create_hf_llm, HuggingFaceLLM
+
+@runtime_checkable
+class LLMInterface(Protocol):
+    def invoke(self, messages) -> Any:
+        ...
+    
+    def __call__(self, *args: Any, **kwds: Any) -> Any:
+        ...
+
+class HuggingFaceAdapter:
+    """Adapter to make HuggingFaceLLM compatible with LangChain's interface"""
+    
+    def __init__(self, model: HuggingFaceLLM):
+        self.model = model
+    
+    def invoke(self, messages):
+        """Convert LangChain messages to a prompt string and invoke the model"""
+        prompt = self._convert_messages_to_prompt(messages)
+        response = self.model(prompt)
+        
+        # Create a simple object with a content attribute to mimic LangChain's response
+        class Response:
+            def __init__(self, content):
+                self.content = content
+        
+        return Response(response)
+    
+    def _convert_messages_to_prompt(self, messages) -> str:
+        """Convert LangChain messages to a string prompt format that works with most models"""
+        prompt_parts = []
+        
+        for message in messages:
+            if isinstance(message, SystemMessage):
+                prompt_parts.append(f"# Yêu cầu hệ thống:\n{message.content}\n")
+            elif isinstance(message, HumanMessage):
+                prompt_parts.append(f"# Câu hỏi:\n{message.content}\n")
+            else:
+                prompt_parts.append(f"{message.content}\n")
+                
+        return "\n".join(prompt_parts)
+    
+    def __call__(self, *args: Any, **kwds: Any) -> Any:
+        return self.invoke(*args, **kwds)
 
 class LLMHandler:
     def __init__(self):
-        self.llm = ChatOpenAI(
-            openai_api_key=settings.OPENAI_API_KEY,
-            model_name=settings.MODEL_NAME,
-            temperature=0.7
-        )
+        if settings.LLM_PROVIDER == "openai":
+            self.llm = ChatOpenAI(
+                openai_api_key=settings.OPENAI_API_KEY,
+                model_name=settings.OPENAI_MODEL_NAME,
+                temperature=0.7
+            )
+        else:  # huggingface
+            hf_model = create_hf_llm(
+                model_name=settings.HF_MODEL_NAME,
+                device=settings.HF_DEVICE,
+                max_length=settings.HF_MAX_LENGTH,
+                temperature=settings.HF_TEMPERATURE,
+                top_p=settings.HF_TOP_P
+            )
+            self.llm = HuggingFaceAdapter(hf_model)
     
     def get_topic_from_question(self, question: str) -> str:
         """Extract the topic from the user's question"""
