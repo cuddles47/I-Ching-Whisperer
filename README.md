@@ -61,6 +61,36 @@ An AI-powered API for I Ching divination that provides dynamic and personalized 
 }
 ```
 
+## Performance Optimization
+
+The API supports both cloud-based (OpenAI) and local LLM implementations, with several optimizations for local inference:
+
+### Local Model Optimizations
+
+- **GPU Acceleration**: Automatic detection and utilization of CUDA, MPS (Apple Silicon), or CPU.
+- **Quantization**: Support for 8-bit and 4-bit quantization to reduce memory usage.
+- **Attention Optimizations**: Integration with Flash Attention 2 for faster processing.
+- **BetterTransformer**: Enhanced transformer architecture for improved throughput.
+- **Adaptive Precision**: FP16 for GPUs to balance speed and accuracy.
+
+### Configuration
+
+Performance optimizations can be controlled via `.env` settings:
+
+```bash
+# Enable optimizations
+LLM_OPTIMIZE=True
+
+# Optimization settings
+HF_USE_BETTER_TRANSFORMER=True
+HF_USE_FLASH_ATTENTION=True
+HF_USE_8BIT=True
+HF_USE_4BIT=False
+HF_BATCH_SIZE=1
+```
+
+For more details on optimizing local models, see [Local Models Documentation](docs/local_models.md).
+
 ## Project Structure
 
 ```
