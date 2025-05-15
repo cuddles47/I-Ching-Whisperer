@@ -1,9 +1,21 @@
 from langchain_community.chat_models import ChatOpenAI
 from langchain.schema import SystemMessage, HumanMessage
 from typing import List, Dict, Any, Optional, Protocol, runtime_checkable
+import importlib
 
 from app.core.config import settings
-from app.core.hf_llm import create_hf_llm, HuggingFaceLLM
+
+# Dynamically import the appropriate HF LLM implementation based on optimization settings
+if settings.LLM_OPTIMIZE:
+    try:
+        from app.core.hf_llm_optimized import create_hf_llm, HuggingFaceLLM
+        print("🚀 Using optimized Hugging Face LLM implementation")
+    except ImportError:
+        from app.core.hf_llm import create_hf_llm, HuggingFaceLLM
+        print("⚠️ Optimized implementation not available, falling back to standard implementation")
+else:
+    from app.core.hf_llm import create_hf_llm, HuggingFaceLLM
+    print("ℹ️ Using standard Hugging Face LLM implementation (optimizations disabled)")
 
 @runtime_checkable
 class LLMInterface(Protocol):
@@ -57,14 +69,28 @@ class LLMHandler:
                 temperature=0.7
             )
         else:  # huggingface
-            hf_model = create_hf_llm(
-                model_name=settings.HF_MODEL_NAME,
-                device=settings.HF_DEVICE,
-                max_length=settings.HF_MAX_LENGTH,
-                max_new_tokens=settings.HF_MAX_NEW_TOKENS,
-                temperature=settings.HF_TEMPERATURE,
-                top_p=settings.HF_TOP_P
-            )
+            # Prepare kwargs for the HF model with optimization parameters
+            hf_kwargs = {
+                "model_name": settings.HF_MODEL_NAME,
+                "device": settings.HF_DEVICE,
+                "max_length": settings.HF_MAX_LENGTH,
+                "max_new_tokens": settings.HF_MAX_NEW_TOKENS,
+                "temperature": settings.HF_TEMPERATURE,
+                "top_p": settings.HF_TOP_P,
+            }
+            
+            # Add optimization parameters if using optimized version
+            if settings.LLM_OPTIMIZE:
+                optimization_kwargs = {
+                    "use_better_transformer": settings.HF_USE_BETTER_TRANSFORMER,
+                    "use_flash_attention": settings.HF_USE_FLASH_ATTENTION,
+                    "use_8bit": settings.HF_USE_8BIT,
+                    "use_4bit": settings.HF_USE_4BIT,
+                    "batch_size": settings.HF_BATCH_SIZE,
+                }
+                hf_kwargs.update(optimization_kwargs)
+                
+            hf_model = create_hf_llm(**hf_kwargs)
             self.llm = HuggingFaceAdapter(hf_model)
     
     def get_topic_from_question(self, question: str) -> str:
